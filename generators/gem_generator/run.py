@@ -41,6 +41,8 @@ class GemGenerator(object):
         self.variant_amount = list(self.variant_dict.values())[variant_choice]
 
         self.min_value = round(self.base_value / self.variant_amount)
+        if self.min_value < 1:
+            self.min_value = 1
         self.max_value = round(self.base_value * self.variant_amount)
 
     def generate_gems(self):
@@ -48,26 +50,42 @@ class GemGenerator(object):
         print("Price Range: {0}gp - {1}gp".format(self.min_value, self.max_value))
         print("\nResults:")
 
-        while len(self.gem_list) <= self.num_to_generate:
-            max_num = len(GEM_PRICES) - 1
-            min_num = 0
-            random_num = random.randint(min_num, max_num)
-            gem = list(GEM_PRICES.keys())[random_num]
-            base_gem_price = GEM_PRICES[gem]
+        # keep generating gems until we have the required number
+        # while loop used instead of for because randomly chosen gem may not fit within valid price range set by user
+        while len(self.gem_list) < self.num_to_generate:
+            # create a list of weights from the weight value in the GEM_PRICES dict
+            weight_list = [gem_dict["weight"] for gem_dict in GEM_PRICES]
+            random_gems = random.choices(GEM_PRICES, weights=weight_list, k=self.num_to_generate)
 
-            max_gem_price = base_gem_price * MAX_MODIFIER
-            min_gem_price = base_gem_price * MIN_MODIFIER
+            for random_gem in random_gems:
+                # get the attributes from the randomly selected gem dict
+                base_gem_price = random_gem["price"]
+                gem_name = random_gem["name"]
 
-            # if max possible gem price is too low or min possible gem price is too high then generate a new random gem
-            if max_gem_price < self.min_value or min_gem_price > self.max_value:
-                continue
+                # keep randomly generating a gem price
+                min_price_mod = self.min_value / base_gem_price
+                max_price_mod = self.max_value / base_gem_price
 
-            gem_price = -100
-            while self.min_value >= gem_price or gem_price >= self.max_value:
-                random_price_mod = random.uniform(MIN_MODIFIER, MAX_MODIFIER)
+                # if the min price modifier for the gem is greater than the max constant or
+                # the max price modifier is less than the min constant skip the gem and generate a new one
+                if max_price_mod < MIN_MODIFIER or min_price_mod > MAX_MODIFIER:
+                    continue
+
+                # ensure that the gem can never go outside the hard set Min and Max constant price
+                # e.g. if the lowest variant price is 20 a gem with a price of 5000 should still never go below 200
+                if min_price_mod < MIN_MODIFIER:
+                    min_price_mod = MIN_MODIFIER
+                if max_price_mod > MAX_MODIFIER:
+                    max_price_mod = MAX_MODIFIER
+
+                # generate a random price for the gem within the valid range for that gem and the variant price limit
+                random_price_mod = random.uniform(min_price_mod, max_price_mod)
                 gem_price = round(base_gem_price * random_price_mod)
 
-            self.gem_list.append({gem: gem_price})
+                # add the newly generated gem and price to a list for sorting
+                self.gem_list.append({gem_name: gem_price})
+                if len(self.gem_list) == self.num_to_generate:
+                    break
 
         # sort by gem name and then by gem value
         sorted_list = sorted(self.gem_list, key=lambda d: (list(d.keys()), list(d.values())))
