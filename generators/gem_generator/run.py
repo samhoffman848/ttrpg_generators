@@ -68,14 +68,21 @@ class GemGenerator(object):
 
       self.gem_list.append({gem: gem_price})
 
-    sorted_list = sorted(self.gem_list.keys())
+    # sort by gem name and then by gem value
+    sorted_list = sorted(self.gem_list, key=lambda d: (list(d.keys()), list(d.values())))
+
+    # print the final sorted list of generated gems and prices
     for gem_dict in sorted_list:
-      print("{0} - {1}gp".format(gem_dict.key(), gem_dict.value()))
+      key = list(gem_dict.keys())[0]
+      value = list(gem_dict.values())[0]
+      
+      print("{0} - {1}gp".format(key, value))
     
     print("--------------------------")
     self.run_exit_menu()
   
   def run_exit_menu(self):
+    self.gem_list = []
     print("\nWhat would you like to do? ")
     print ("0. Generate another 10 with same settings")
     print("1. Generate another 10 with different settings")
